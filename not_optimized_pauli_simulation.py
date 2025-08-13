@@ -1,7 +1,11 @@
 # pauli_simulation.py
 
+import time
 import qiskit as qk
 from qiskit_aer import AerSimulator
+
+# Start time to notice how much time does it take
+start = time.time()
 
 # Create a 4-qubit quantum circuit with classical bits for measurement
 q = qk.QuantumRegister(4)
@@ -67,7 +71,7 @@ def simulate_pauli_strings(qc, pauli_strings, number_of_shots):
     return results
 
 # List of Pauli strings to measure
-pauli_strings = ['XXXX', 'YYYY', 'XYZX', 'XYZI', 'ZZZZ', 'XXYY']
+pauli_strings = ['XXXX', 'XYZZ', 'ZZZZ', 'ZIZZ', 'ZZII']
 # Number of simulation shots
 shots = 100000
 
@@ -77,3 +81,8 @@ averages = simulate_pauli_strings(cirq, pauli_strings, shots)
 # Print results
 for i, pauli_string in enumerate(pauli_strings):
     print(f"<{pauli_string}> = {averages[i]}")
+
+# Calculation the execution's time
+end = time.time()
+elapsed = end - start
+print(f"Tempo impiegato: {elapsed:.4f} seconds")
