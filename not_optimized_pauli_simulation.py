@@ -1,27 +1,28 @@
 # pauli_simulation.py
 
 import time
+import json
 import qiskit as qk
 from qiskit_aer import AerSimulator
 
-# Start time to notice how much time does it take
-start = time.time()
+def create_quantum_circuit(num):
+    # Create a n-qubit quantum circuit with classical bits for measurement
+    q = qk.QuantumRegister(num)
+    c = qk.ClassicalRegister(num)
+    cirq = qk.QuantumCircuit(q, c)
 
-# Create a 4-qubit quantum circuit with classical bits for measurement
-q = qk.QuantumRegister(4)
-c = qk.ClassicalRegister(4)
-cirq = qk.QuantumCircuit(q, c)
+    # Apply X gates to alternating qubits
+    for i in range(num):
+        if (i%2 == 0):
+            cirq.x(i)
 
-# Prepare the initial state: apply X-gates
-cirq.x(q[0])  # Flip qubit 0 to |1⟩
-cirq.x(q[2])  # Flip qubit 2 to |1⟩
+    cirq.barrier()
 
-# Add a barrier for clarity
-cirq.barrier()
+    return cirq
 
 # Function to apply basis-changing gates so that Pauli measurements can be done in Z-basis
-def apply_rotations_pauli_string(qc, pauli_string):
-    for i, pauli in enumerate(pauli_string):
+def apply_rotations_pauli_string(qc, pauli_str):
+    for i, pauli in enumerate(pauli_str):
         if pauli == 'I' or pauli == 'Z':
             continue  # No rotation needed
         elif pauli == 'X':
@@ -31,58 +32,77 @@ def apply_rotations_pauli_string(qc, pauli_string):
             qc.h(qc.qubits[i])    # Rotate Y to Z
 
 # Function to measure qubits in the Z-basis
-def measure_pauli_string(qc, pauli_string):
-    for i, pauli in enumerate(pauli_string):
+def measure_pauli_string(qc, pauli_str):
+    for i, pauli in enumerate(pauli_str):
         if pauli != 'I':  # Only measure non-identity terms
             qc.measure(qc.qubits[i], qc.clbits[i])
 
 # Main function to compute expectation values of Pauli strings
 def simulate_pauli_strings(qc, pauli_strings, number_of_shots):
-    results = []
+    results = {}
 
-    for pauli_string in pauli_strings:
+    for pauli_str in pauli_strings:
         # Copy the base circuit
         temp_cirq = qc.copy()
+        apply_rotations_pauli_string(temp_cirq, pauli_str)
         temp_cirq.barrier()
+        measure_pauli_string(temp_cirq, pauli_str)
 
-        # Apply rotations and measurements
-        apply_rotations_pauli_string(temp_cirq, pauli_string)
-        temp_cirq.barrier()
-        measure_pauli_string(temp_cirq, pauli_string)
+        # Print circuit for this Pauli string
+        print(f"\n🔍 Measuring new Pauli string: {pauli_str}")
+        print(temp_cirq.draw(output='text'))
+        if not all(c == 'I' for c in pauli_str):
+            simulator = AerSimulator()
+            temp_cirq = qk.transpile(temp_cirq, simulator)
+            job = simulator.run(temp_cirq, shots=number_of_shots)
+            result = job.result()
+            counts = result.get_counts()
 
-        # Transpile and simulate
-        simulator = AerSimulator()
-        temp_cirq = qk.transpile(temp_cirq, simulator)
-        job = simulator.run(temp_cirq, shots=number_of_shots)
-        result = job.result()
-        counts = result.get_counts()
+        # Expectation value
+        if all(c == 'I' for c in pauli_str):
+            average = 1
+        else:
+            total = 0
+            for outcome in counts:
+                eigenvalue = 1
+                for i, bit in enumerate(outcome):
+                    if pauli_str[i] != 'I' and bit == '1':
+                        eigenvalue *= -1
+                total += counts[outcome] * eigenvalue
+            average = total / number_of_shots
 
-        # Compute expectation value
-        total = 0
-        for outcome in counts:
-            eigenvalue = 1
-            for bit in outcome:
-                if bit == '1':
-                    eigenvalue *= -1
-            total += counts[outcome] * eigenvalue
-        average = total / number_of_shots
-        results.append(average)
+        results[pauli_str] = average
 
     return results
 
-# List of Pauli strings to measure
-pauli_strings = ['XXXX', 'XYZZ', 'ZZZZ', 'ZIZZ', 'ZZII']
-# Number of simulation shots
-shots = 100000
+def main():
+    # Start time to notice how much time does it take
+    start = time.time()
 
-# Run simulation
-averages = simulate_pauli_strings(cirq, pauli_strings, shots)
+    # Input
+    with open('H2_sto-3g_qubit_hamiltonian.json', 'r', encoding='utf-8') as file:
+        molecule = json.load(file)
+    dict = molecule['qubit_hamiltonian']
+    pauli_strings = list(dict.keys())
+    number_of_qubits = len(pauli_strings[0])
+    shots = 1000
 
-# Print results
-for i, pauli_string in enumerate(pauli_strings):
-    print(f"<{pauli_string}> = {averages[i]}")
+    # Run
+    cirq = create_quantum_circuit(number_of_qubits)
+    averages = simulate_pauli_strings(cirq, pauli_strings, shots)
 
-# Calculation the execution's time
-end = time.time()
-elapsed = end - start
-print(f"Tempo impiegato: {elapsed:.4f} seconds")
+    # Print final results
+    print("\n📊 Expectation values:")
+    energy = 0
+    for ps in pauli_strings:
+        print(f"<{ps}> = {averages[ps]}")
+        energy += averages[ps] * dict[ps]
+    print(f"\n💡 L'energia della molecola {molecule['name']} e' {energy}")
+
+    # Calculation the execution's time
+    end = time.time()
+    elapsed = end - start
+    print(f"⏱️  Tempo impiegato: {elapsed:.4f} secondi.\n")
+
+if __name__ == "__main__":
+    main()
