@@ -80,8 +80,16 @@ def main():
     start = time.time()
 
     # Input
-    with open('H2_sto-3g_qubit_hamiltonian.json', 'r', encoding='utf-8') as file:
-        molecule = json.load(file)
+    name = input("Che molecola vuoi analizzare? ")
+    filename = f'{name}_sto-3g_qubit_hamiltonian.json'
+    try:
+        with open(filename, 'r', encoding='utf-8') as file:
+            molecule = json.load(file)
+        print(f"Dati della molecola {name} caricati con successo!")
+    except FileNotFoundError:
+        print(f"Errore: non sono ancora stati caricati dati per questa molecoola.")
+    except json.JSONDecodeError:
+        print(f"Errore: il file {filename} non è un JSON valido.")
     dict = molecule['qubit_hamiltonian']
     pauli_strings = list(dict.keys())
     number_of_qubits = len(pauli_strings[0])
