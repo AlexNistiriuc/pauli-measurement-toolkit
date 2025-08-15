@@ -4,12 +4,12 @@ import time
 import json
 import qiskit as qk
 from analitical import analitical_minimum_energy
-from simulations import optimized_simulation    # not_optimized_simulation
+from simulations import simulation
 
 def get_input():
     print('\n' + '='*50)
     name = input("Che molecola vuoi analizzare? ")
-    filename = f'..\molecules\{name}_sto-3g_qubit_hamiltonian.json' #path to molecules' json 
+    filename = f'molecules\\{name}_sto-3g_qubit_hamiltonian.json' # Path to molecules json
     try:
         with open(filename, 'r', encoding='utf-8') as file:
             print(f"Dati della molecola {name} caricati con successo!\n" + '='*50)
@@ -34,43 +34,33 @@ def create_quantum_circuit(num):
 
     return cirq
 
+# Main function
 def main():
     # Input
     molecule = get_input()
+    shots = 1000
 
     # Divide input's components
     dict = molecule['qubit_hamiltonian']
     pauli_strings = list(dict.keys())
     number_of_qubits = len(pauli_strings[0])
-    shots = 1000
 
     # Calculate the minimum energy value analitically
     min_energy = analitical_minimum_energy(dict, number_of_qubits)
+    print(f"🎯 L'energia minima che può assumere la molecola {molecule['name']} e' {min_energy}.")
 
     # Create the cirquit
     cirq = create_quantum_circuit(number_of_qubits)
 
     # Simulate the cirquit
     start = time.time()
-    averages = optimized_simulation(cirq, pauli_strings, shots)
-    # averages = not_optimized_simulation(cirq, pauli_strings, shots)
+    sim_energy = simulation(cirq, dict, shots)
     end = time.time()
     elapsed = end - start
-    print("### SIMULATION\'S OUPUT ###")
-    print('='*50)
-
-    # Calculate the energy
-    # print("\n📊 Expectation values:")
-    sim_energy = 0
-    for ps in pauli_strings:
-        # print(f"<{ps}> = {averages[ps]}")
-        sim_energy += averages[ps] * dict[ps]
-    print("### EXPECTATION VALUES ###")
-    print('='*50)
     
     # Final outputs
-    print(f"🎯 L'energia minima che può assumere il valore {min_energy}.")
-    print(f"💡 L'energia della molecola {molecule['name']} simulata e' {sim_energy}.")
+    difference = sim_energy - min_energy
+    print(f"💡 L'energia della molecola {molecule['name']} simulata e' {sim_energy}. --> Errore di {difference}.")
     print(f"⏱️  Tempo impiegato: {elapsed:.4f} secondi.")
     print('='*50 + '\n')
 

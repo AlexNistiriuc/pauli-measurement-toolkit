@@ -15,7 +15,7 @@ def pstr_to_matrix(pauli_str):
         matrix = np.kron(matrix, pauli_dict[c]) # Tensor product
     return matrix
 
-# Calculate the expected minimun energy
+# Main function to calculate the expected minimun energy
 def analitical_minimum_energy(dict, n):
     H = np.zeros((2**n, 2**n), dtype=complex)   # Starting 0-matrix
     for ps in list(dict.keys()):
