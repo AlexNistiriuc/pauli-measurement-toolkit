@@ -9,7 +9,7 @@ from simulations import optimized_simulation    # not_optimized_simulation
 def get_input():
     print('\n' + '='*50)
     name = input("Che molecola vuoi analizzare? ")
-    filename = f'..\{name}_sto-3g_qubit_hamiltonian.json'
+    filename = f'..\molecules\{name}_sto-3g_qubit_hamiltonian.json' #path to molecules' json 
     try:
         with open(filename, 'r', encoding='utf-8') as file:
             print(f"Dati della molecola {name} caricati con successo!\n" + '='*50)
