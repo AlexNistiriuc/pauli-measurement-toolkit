@@ -48,7 +48,7 @@ def get_output(qc, pauli_str, shots):
     measure_pauli_string(temp_cirq, pauli_str)
 
     # Print circuit for this Pauli string
-    # print(f"\n🔍 Misurando la nuova stringa di Pauli: {pauli_str}")
+    # print(f"\nMisurando la nuova stringa di Pauli: {pauli_str}")
     # print(temp_cirq.draw(output='text'))
     simulator = AerSimulator()
     temp_cirq = qk.transpile(temp_cirq, simulator)
@@ -107,12 +107,15 @@ def optimized(qc, pauli_strings, shots):
         if base is not None:
             # Reuse the circuit outputs
             counts = reusable_data[base]
-            # print(f"♻️ Riutilizzando le misurazioni della stringa di Pauli {base} per {pauli_str}")
+            results[pauli_str] = expectation_value(pauli_str, counts, shots)
+            # print(f"Riutilizzando le misurazioni della stringa di Pauli {base} per {pauli_str}")
         else:
             # Get the circuit output
             counts = get_output(qc, pauli_str, shots=shots)
+            reusable_data[pauli_str] = counts
             # Expectation value
             results[pauli_str] = expectation_value(pauli_str, counts, shots)
+            
 
     return results
 
@@ -122,7 +125,7 @@ def simulation(qc, dict, shots):
     # averages = not_optimized(qc, list(dict.keys()), shots)    # not optimized version
 
     # Calculate the energy
-    # print("\n📊 Expectation values:")
+    # print("\nExpectation values:")
     sim_energy = 0
     for ps in list(dict.keys()):
         # print(f"<{ps}> = {results[ps]}")
