@@ -1,26 +1,27 @@
 #vqe_runner.py
 
+import numpy as np
+from qiskit import ClassicalRegister
 from ansatz_factory import create_ansatz
 from scipy.optimize import minimize
 from simulations import simulation
-import numpy as np
-
 
 def run_vqe(H_dict, num_qubits, shots=100):
     """
-    ansatz: circuito parametrico (TwoLocal)
-    expectation_func: funzione che calcola <H> dato il circuito e i parametri
-    initial_params: array iniziale dei parametri
+    ansatz: Circuito parametrico (TwoLocal)
+    expectation_func: Funzione che calcola <H> dato il circuito e i parametri
+    initial_params: Array iniziale dei parametri
     """
-    #ansatz' creation once
+
+    # Ansatz creation once
     ansatz = create_ansatz(num_qubits=num_qubits, reps=3)
+    ansatz.add_register(ClassicalRegister(num_qubits, 'c'))
 
     initial_parameters= np.random.normal(0, 0.1, ansatz.num_parameters)
-
     energies = []
     
     def objective(params):
-        #using the same ansatz, but with redefined params
+        # Using the same ansatz, but with redefined params
         parameterized_circuit = ansatz.assign_parameters(params)
 
         # ✅ AGGIUNGI REGISTRI CLASSICI SE MANCANO
@@ -32,8 +33,7 @@ def run_vqe(H_dict, num_qubits, shots=100):
         energies.append(energy)
         return energy
     
-    result = minimize(objective, initial_parameters, method='COBYLA', 
-                     options={'maxiter': 200})
+    result = minimize(objective, initial_parameters, method='COBYLA', options={'maxiter': 200})
 
     return result, energies
 

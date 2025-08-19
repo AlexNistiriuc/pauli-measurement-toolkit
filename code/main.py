@@ -5,9 +5,7 @@ import json
 import qiskit as qk
 import matplotlib.pyplot as plt
 from analitical import analitical_minimum_energy
-from simulations import simulation
 from vqe_runner import run_vqe
-
 
 """
 def create_quantum_circuit(num):
@@ -29,7 +27,7 @@ def create_quantum_circuit(num):
 def get_input():
     print('\n' + '='*50)
     name = input("Che molecola vuoi analizzare? ")
-    filename = f'..\molecules\{name}_sto-3g_qubit_hamiltonian.json' # Path to molecules json
+    filename = f'molecules\\{name}_sto-3g_qubit_hamiltonian.json' # Path to molecules json
     try:
         with open(filename, 'r', encoding='utf-8') as file:
             print(f"Dati della molecola {name} caricati con successo!\n" + '='*50)
@@ -39,12 +37,13 @@ def get_input():
     except json.JSONDecodeError:
         print(f"Errore: il file {filename} non è un JSON valido.")
 
-
-def plot_vqe_convergence(energies, min_energy, molecule_name, save_plot=True):
+def plot_vqe_convergence(result, elapsed, energies, min_energy, molecule_name, save_plot=True):
     """
     Plotta la convergenza del VQE
     
     Args:
+        result: Energia minima sperimentale
+        elapsed: Tempo impiegato
         energies: Lista delle energie durante l'ottimizzazione
         min_energy: Energia minima analitica
         molecule_name: Nome della molecola
@@ -58,9 +57,13 @@ def plot_vqe_convergence(energies, min_energy, molecule_name, save_plot=True):
     iterations = range(len(energies))
     plt.plot(iterations, energies, 'b-', linewidth=2, label='VQE Energy', alpha=0.8)
     
+    # Linea energia minima sperimentale
+    plt.axhline(y=result, color='blue', linestyle='--', linewidth=2, 
+                label=f'Energia minima sperimentale: {result:.6f}')
+    
     # Linea energia minima analitica
     plt.axhline(y=min_energy, color='red', linestyle='--', linewidth=2, 
-                label=f'Energia Analitica: {min_energy:.6f}')
+                label=f'Energia minima analitica: {min_energy:.6f}')
     
     # Energia finale VQE
     final_energy = energies[-1]
@@ -81,7 +84,7 @@ def plot_vqe_convergence(energies, min_energy, molecule_name, save_plot=True):
     plt.grid(True, alpha=0.3)
     
     # Statistiche nel plot
-    error = abs(final_energy - min_energy)
+    error = abs(result - min_energy)
     error_percent = (error / abs(min_energy)) * 100
     
     # Box con statistiche
@@ -89,7 +92,8 @@ def plot_vqe_convergence(energies, min_energy, molecule_name, save_plot=True):
 • Iterazioni: {len(energies)}
 • Errore assoluto: {error:.6f}
 • Errore %: {error_percent:.3f}%
-• Miglioramento: {energies[0] - energies[-1]:.6f}'''
+• Miglioramento: {energies[0] - energies[-1]:.6f}
+• Tempo impiegato: {elapsed:.6f}'''
     
     plt.text(0.02, 0.98, stats_text, transform=plt.gca().transAxes, 
              verticalalignment='top', bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.8))
@@ -98,12 +102,13 @@ def plot_vqe_convergence(energies, min_energy, molecule_name, save_plot=True):
     
     # Salva il plot
     if save_plot:
-        filename = f'{molecule_name}_VQE_convergence.png'
+        # Formato: YYYY-MM-DD_HH.MM.SS
+        timestamp = time.strftime("%Y-%m-%d_%H.%M.%S")
+        filename = f'results\\{molecule_name}\\{timestamp}.png'
         plt.savefig(filename, dpi=300, bbox_inches='tight')
-        print(f"📊 Plot salvato come: {filename}")
+        print(f"📊 Plot salvato come: {filename}\n" + '='*50)
     
     plt.show()
-
 
 # Main function
 def main():
@@ -132,13 +137,11 @@ def main():
     print(f"Numero di iterazioni: {len(vqe_energies)}")
     print(f"Lista di energie (prime 5): {vqe_energies[:5]}...")
     print(f"Tempo impiegato: {elapsed:.4f} secondi.")
-    print('='*50 + '\n')
-
+    print('='*50)
     print("📊 Creazione grafici...")
     
     # Plot semplice
-    plot_vqe_convergence(vqe_energies, min_energy, molecule['name'])
-
+    plot_vqe_convergence(vqe_result.fun, elapsed, vqe_energies, min_energy, molecule['name'])
 
 if __name__ == "__main__":
     main()
