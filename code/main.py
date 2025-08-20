@@ -1,5 +1,6 @@
 # main.py
 
+from contextlib import redirect_stdout
 import time
 import json
 import qiskit as qk
@@ -37,7 +38,7 @@ def get_input():
     except json.JSONDecodeError:
         print(f"Errore: il file {filename} non è un JSON valido.")
 
-def plot_vqe_convergence(result, elapsed, energies, min_energy, molecule_name, save_plot=True):
+def plot_vqe_convergence(result, elapsed, energies, min_energy, molecule_name, filename, save_plot=True):
     """
     Plotta la convergenza del VQE
     
@@ -102,11 +103,8 @@ def plot_vqe_convergence(result, elapsed, energies, min_energy, molecule_name, s
     
     # Salva il plot
     if save_plot:
-        # Formato: YYYY-MM-DD_HH.MM.SS
-        timestamp = time.strftime("%Y-%m-%d_%H.%M.%S")
-        filename = f'results\\{molecule_name}\\{timestamp}.png'
-        plt.savefig(filename, dpi=300, bbox_inches='tight')
-        print(f"📊 Plot salvato come: {filename}\n" + '='*50)
+        plt.savefig("results\\images\\" + filename + '.png', dpi=300, bbox_inches='tight')
+        print(f"Plot salvato come: {"results\\images\\" + filename + '.png'}\n" + '='*50)
     
     plt.show()
 
@@ -117,31 +115,40 @@ def main():
     num_qubits = 4
     shots = 100
 
-    # Divide input's components
-    dict = molecule['qubit_hamiltonian']
-    pauli_strings = list(dict.keys())
-    number_of_qubits = len(pauli_strings[0])
+    # Formato: YYYY-MM-DD_HH.MM.SS
+    timestamp = time.strftime("%Y-%m-%d_%H.%M.%S")
+    filename = f'{molecule['name']}\\{timestamp}'
 
-    # Calculate the minimum energy value analitically
-    min_energy = analitical_minimum_energy(dict, number_of_qubits)
-    print(f"L'energia minima che può assumere la molecola {molecule['name']} e' {min_energy}.")
+    with open("results\\files\\" + filename + '.txt', 'w') as f:
+        with redirect_stdout(f):
+            # Divide input's components
+            dict = molecule['qubit_hamiltonian']
+            pauli_strings = list(dict.keys())
+            number_of_qubits = len(pauli_strings[0])
 
-    start = time.time()
-    vqe_result, vqe_energies = run_vqe(molecule['qubit_hamiltonian'], num_qubits, shots)
-    end = time.time()
-    elapsed = end - start
+            # Calculate the minimum energy value analitically
+            min_energy = analitical_minimum_energy(dict, number_of_qubits)
+            print(f"L'energia minima che puo' assumere la molecola {molecule['name']} e' {min_energy}.")
+
+            start = time.time()
+            vqe_result, vqe_energies = run_vqe(molecule['qubit_hamiltonian'], num_qubits, shots)
+            end = time.time()
+            elapsed = end - start
+            
+            # Final outputs
+            difference = vqe_result.fun - min_energy  
+            print(f"L'energia della molecola {molecule['name']} simulata e' {vqe_result.fun}. --> Errore di {difference}.")  
+            print(f"Tempo impiegato: {elapsed:.4f} secondi.")
+            print('='*50)
+            print(f"Hamiltoniana: {dict}")
+            print(f"Numero di iterazioni: {len(vqe_energies)}")
+            print(f"Lista di energie: {vqe_energies}...")
+            print('='*50)
+            
+            # Plot semplice
+            plot_vqe_convergence(vqe_result.fun, elapsed, vqe_energies, min_energy, molecule['name'], filename)
     
-    # Final outputs
-    difference = vqe_result.fun - min_energy  
-    print(f"L'energia della molecola {molecule['name']} simulata e' {vqe_result.fun}. --> Errore di {difference}.")  
-    print(f"Numero di iterazioni: {len(vqe_energies)}")
-    print(f"Lista di energie (prime 5): {vqe_energies[:5]}...")
-    print(f"Tempo impiegato: {elapsed:.4f} secondi.")
-    print('='*50)
-    print("📊 Creazione grafici...")
-    
-    # Plot semplice
-    plot_vqe_convergence(vqe_result.fun, elapsed, vqe_energies, min_energy, molecule['name'])
+    print(f"File salvato come {"results\\files\\" + filename + ".png"}\n")
 
 if __name__ == "__main__":
     main()

@@ -8,7 +8,7 @@ def create_ansatz(num_qubits=4, reps=3, rotation_blocks=['rx', 'ry', 'rz'], enta
     
     """
     
-
+    print('='*50 + f"\nL'ansatz utilizzato e' del tipo:\n\tTwoLocal(num_qubits={num_qubits},\n\t\t\t reps={reps},\n\t\t\t rotation_blocks={rotation_blocks},\n\t\t\t entanglement={entanglement},\n\t\t\t entanglement_blocks='cz')\n" + '='*50)
 
     #returning Ansatz
     return TwoLocal(num_qubits=num_qubits, 
