@@ -19,23 +19,33 @@ def run_vqe(H_dict, num_qubits, shots=100):
 
     initial_parameters= np.random.normal(0, 0.1, ansatz.num_parameters)
     energies = []
+
+    n_rep = 0
+
+    best_cirq = None
+    min_energy = float('inf')
+    best_rep = -1
     
     def objective(params):
+        nonlocal best_cirq, min_energy, best_rep, n_rep
         # Using the same ansatz, but with redefined params
         parameterized_circuit = ansatz.assign_parameters(params)
 
-        # ✅ AGGIUNGI REGISTRI CLASSICI SE MANCANO
-        if not parameterized_circuit.cregs:
-            from qiskit import ClassicalRegister
-            parameterized_circuit.add_register(ClassicalRegister(num_qubits, 'c'))
-
         energy = simulation(parameterized_circuit, H_dict, shots)
         energies.append(energy)
+
+        if energy < min_energy:
+            best_cirq = parameterized_circuit
+            min_energy = energy
+            best_rep = n_rep
+
+        n_rep += 1
+
         return energy
     
     result = minimize(objective, initial_parameters, method='COBYLA', options={'maxiter': 200})
 
-    return result, energies
+    return result, energies, best_cirq, best_rep
 
 if __name__ == "__main__":
     print("🧪 Testing VQE Runner...")

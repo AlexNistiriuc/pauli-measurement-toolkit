@@ -1,6 +1,7 @@
 # main.py
 
 from contextlib import redirect_stdout
+import os
 import time
 import json
 import qiskit as qk
@@ -38,7 +39,7 @@ def get_input():
     except json.JSONDecodeError:
         print(f"Errore: il file {filename} non è un JSON valido.")
 
-def plot_vqe_convergence(result, elapsed, energies, min_energy, molecule_name, filename, save_plot=True):
+def plot_vqe_convergence(result, elapsed, energies, min_energy, molecule_name, filename, best_rep, save_plot=True):
     """
     Plotta la convergenza del VQE
     
@@ -68,14 +69,18 @@ def plot_vqe_convergence(result, elapsed, energies, min_energy, molecule_name, f
     
     # Energia finale VQE
     final_energy = energies[-1]
-    plt.axhline(y=final_energy, color='green', linestyle=':', linewidth=2,
+    plt.axhline(y=final_energy, color='blue', linestyle=':', linewidth=2,
                 label=f'VQE Finale: {final_energy:.6f}')
     
     # Evidenziare primo e ultimo punto
     plt.scatter([0], [energies[0]], color='blue', s=100, zorder=5, 
                 label=f'Inizio: {energies[0]:.6f}')
-    plt.scatter([len(energies)-1], [energies[-1]], color='green', s=100, zorder=5,
+    plt.scatter([len(energies)-1], [energies[-1]], color='blue', s=100, zorder=5,
                 label=f'Fine: {final_energy:.6f}')
+    
+    # Evidenziare il punto "migliore"
+    plt.scatter(float(best_rep), float(result), color='red', s=100, zorder=5,
+                label=f'Migliore: {final_energy:.6f}')
     
     # Decorazioni
     plt.xlabel('Iterazione', fontsize=12)
@@ -91,6 +96,7 @@ def plot_vqe_convergence(result, elapsed, energies, min_energy, molecule_name, f
     # Box con statistiche
     stats_text = f'''Statistiche:
 • Iterazioni: {len(energies)}
+• Migliore: {result:.6f}
 • Errore assoluto: {error:.6f}
 • Errore %: {error_percent:.3f}%
 • Miglioramento: {energies[0] - energies[-1]:.6f}
@@ -103,8 +109,8 @@ def plot_vqe_convergence(result, elapsed, energies, min_energy, molecule_name, f
     
     # Salva il plot
     if save_plot:
-        plt.savefig("results\\images\\" + filename + '.png', dpi=300, bbox_inches='tight')
-        print(f"Plot salvato come: {"results\\images\\" + filename + '.png'}\n" + '='*50)
+        plt.savefig(filename + '\\image.png', dpi=300, bbox_inches='tight')
+        print(f"Plot salvato come: {filename + 'image.png'}\n" + '='*50)
     
     plt.show()
 
@@ -117,9 +123,10 @@ def main():
 
     # Formato: YYYY-MM-DD_HH.MM.SS
     timestamp = time.strftime("%Y-%m-%d_%H.%M.%S")
-    filename = f'{molecule['name']}\\{timestamp}'
+    dirname = f'results\\{molecule['name']}\\{timestamp}'
+    os.makedirs(dirname, exist_ok=True)
 
-    with open("results\\files\\" + filename + '.txt', 'w') as f:
+    with open(dirname + '\\file.txt', 'w', encoding='utf-8') as f:
         with redirect_stdout(f):
             # Divide input's components
             dict = molecule['qubit_hamiltonian']
@@ -131,12 +138,17 @@ def main():
             print(f"L'energia minima che puo' assumere la molecola {molecule['name']} e' {min_energy}.")
 
             start = time.time()
-            vqe_result, vqe_energies = run_vqe(molecule['qubit_hamiltonian'], num_qubits, shots)
+            vqe_result, vqe_energies, best_cirq, best_rep = run_vqe(molecule['qubit_hamiltonian'], num_qubits, shots)
             end = time.time()
             elapsed = end - start
             
+            difference = vqe_result.fun - min_energy
+            decomposed_circuit = best_cirq.decompose()
+            
             # Final outputs
-            difference = vqe_result.fun - min_energy  
+            print(f"Miglior circuito (ripetizione n. {best_rep}):")
+            print(decomposed_circuit.draw(fold=60, output='text'))
+            print('='*50)
             print(f"L'energia della molecola {molecule['name']} simulata e' {vqe_result.fun}. --> Errore di {difference}.")  
             print(f"Tempo impiegato: {elapsed:.4f} secondi.")
             print('='*50)
@@ -146,9 +158,9 @@ def main():
             print('='*50)
             
             # Plot semplice
-            plot_vqe_convergence(vqe_result.fun, elapsed, vqe_energies, min_energy, molecule['name'], filename)
+            plot_vqe_convergence(vqe_result.fun, elapsed, vqe_energies, min_energy, molecule['name'], dirname, best_rep)
     
-    print(f"File salvato come {"results\\files\\" + filename + ".png"}\n")
+    print(f"File salvato come {dirname + "\\image.png"}\n")
 
 if __name__ == "__main__":
     main()

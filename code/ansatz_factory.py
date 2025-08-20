@@ -2,7 +2,7 @@
 
 from qiskit.circuit.library import TwoLocal
 
-def create_ansatz(num_qubits=4, reps=3, rotation_blocks=['rx', 'ry', 'rz'], entanglement='full', entanglement_blocks='cz', parameter_prefix='θ'):
+def create_ansatz(num_qubits=4, reps=2, rotation_blocks=['rx', 'ry', 'rz'], entanglement='linear', entanglement_blocks=['cx'], parameter_prefix='theta'):
     """
 
     
