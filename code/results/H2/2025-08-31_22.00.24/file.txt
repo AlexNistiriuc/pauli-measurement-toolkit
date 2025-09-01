@@ -1,0 +1,9 @@
+L'energia minima che puo' assumere la molecola H2 e' -1.630327541152619.
+==================================================
+L'ansatz utilizzato e' del tipo:
+	TwoLocal(num_qubits=4,
+			 reps=3,
+			 rotation_blocks=['rx', 'ry', 'rz'],
+			 entanglement=full,
+			 entanglement_blocks='cz')
+==================================================

@@ -24,16 +24,20 @@ def apply_rotations_pauli_string(qc, pauli_str):
 # Function to measure qubits in Z-basis
 def measure_pauli_string(qc, pauli_str):
     for i, pauli in enumerate(pauli_str):
-        if pauli != 'I':  # Only measure non-identity terms
-            qc.measure(qc.qubits[i], qc.clbits[i])
+        qc.measure(qc.qubits[i], qc.clbits[i])
 
 # Check if base can be reused
 def can_reuse_measurements(pauli_str, stored_strings):
     for string in stored_strings:
         is_reusable = True
         for a, b in zip(pauli_str, string):
-            if a != b and (a not in ['I', 'Z'] or b not in ['I', 'Z']):
-                is_reusable = False # Check if the strings need the same rotations
+            # Due stringhe possono condividere misure solo se richiedono 
+            # le stesse rotazioni per ogni qubit
+            rotation_a = 'none' if a in ['I', 'Z'] else ('H' if a == 'X' else 'SH')
+            rotation_b = 'none' if b in ['I', 'Z'] else ('H' if b == 'X' else 'SH')
+            
+            if rotation_a != rotation_b:
+                is_reusable = False
                 break
         if is_reusable:
             return string
@@ -61,12 +65,13 @@ def get_output(qc, pauli_str, shots):
 # Calculate the expected value given a pauli_str and its counts
 def expectation_value(pauli_str, counts, shots):
     total = 0
-    for outcome in counts:
+    for outcome, cnt in counts.items():   
+        outcome_rev = outcome[::-1]       
         eigenvalue = 1
-        for i, bit in enumerate(outcome):
+        for i, bit in enumerate(outcome_rev):
             if pauli_str[i] != 'I' and bit == '1':
                 eigenvalue *= -1
-        total += counts[outcome] * eigenvalue
+        total += cnt * eigenvalue         
     return total / shots
 
 # Not optimized version
@@ -74,7 +79,7 @@ def not_optimized(qc, pauli_strings, shots):
     results = {}
 
     for pauli_str in pauli_strings:
-        # Control the string lenght and composition
+        # Control the string length and composition
         controls(pauli_str=pauli_str, qc=qc)
 
         # If all-I string set result = 1
@@ -95,7 +100,7 @@ def optimized(qc, pauli_strings, shots):
     results = {}
 
     for pauli_str in pauli_strings:
-        # Control the string lenght and composition
+        # Control the string length and composition
         controls(pauli_str=pauli_str, qc=qc)
 
         # If all-I string set result = 1
@@ -115,14 +120,13 @@ def optimized(qc, pauli_strings, shots):
             reusable_data[pauli_str] = counts
             # Expectation value
             results[pauli_str] = expectation_value(pauli_str, counts, shots)
-            
 
     return results
 
 # Main function to compute expectation values of Pauli strings in the given quantum circuit
 def simulation(qc, dict, shots):
     averages = optimized(qc, list(dict.keys()), shots)          # optimized version
-    # averages = not_optimized(qc, list(dict.keys()), shots)    # not optimized version
+    #averages = not_optimized(qc, list(dict.keys()), shots)    # not optimized version
 
     # Calculate the energy
     # print("\nExpectation values:")
@@ -132,3 +136,40 @@ def simulation(qc, dict, shots):
         sim_energy += averages[ps] * dict[ps]
 
     return sim_energy
+
+if __name__ == "__main__":
+    from qiskit import QuantumCircuit
+
+    shots = 10000  # numero di misure per ridurre rumore statistico
+
+    # Creazione circuito di test
+    qc = QuantumCircuit(3, 3)
+    qc.h(0)   # qubit 0 in |+>
+    qc.x(1) 
+
+    pauli_strings = ["XII", "IIZ", "IZZ", "XZI", "YYI"]
+    expected_values = {
+        "XII": 1,
+        "IIZ": 1,
+        "IZZ": -1,
+        "XZI": -1,
+        "YYI": 0
+    }
+
+    print("\n=== TEST NOT_OPTIMIZED ===")
+    results_not_opt = not_optimized(qc, pauli_strings, shots)
+    for ps in pauli_strings:
+        print(f"{ps}: calcolato={results_not_opt[ps]:.3f}, teorico={expected_values[ps]}")
+
+    print("\n=== TEST OPTIMIZED ===")
+    results_opt = optimized(qc, pauli_strings, shots)
+    for ps in pauli_strings:
+        print(f"{ps}: calcolato={results_opt[ps]:.3f}, teorico={expected_values[ps]}")
+
+    # Verifica automatica con tolleranza ±10%
+    tol = 0.1
+    for ps in pauli_strings:
+        assert abs(results_not_opt[ps] - expected_values[ps]) < tol, f"Errore not_optimized in {ps}"
+        assert abs(results_opt[ps] - expected_values[ps]) < tol, f"Errore optimized in {ps}"
+
+    print("\nTutti i test superati! ✅ Le misure delle Pauli string sembrano corrette.")

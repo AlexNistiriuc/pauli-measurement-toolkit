@@ -21,7 +21,7 @@ def create_quantum_circuit(num):
         if (i%2 == 0):
             cirq.x(i)
 
-    cirq.barrier()
+    cirq.barrier()  
 
     return cirq
 """
@@ -29,7 +29,9 @@ def create_quantum_circuit(num):
 def get_input():
     print('\n' + '='*50)
     name = input("Che molecola vuoi analizzare? ")
-    filename = f'molecules\\{name}_sto-3g_qubit_hamiltonian.json' # Path to molecules json
+    filename = os.path.join("..","molecules", f"{name}_sto-3g_qubit_hamiltonian.json") # Path to molecules json
+    print(filename)
+
     try:
         with open(filename, 'r', encoding='utf-8') as file:
             print(f"Dati della molecola {name} caricati con successo!\n" + '='*50)
@@ -109,8 +111,9 @@ def plot_vqe_convergence(result, elapsed, energies, min_energy, molecule_name, f
     
     # Salva il plot
     if save_plot:
-        plt.savefig(filename + '\\image.png', dpi=300, bbox_inches='tight')
-        print(f"Plot salvato come: {filename + 'image.png'}\n" + '='*50)
+        plt.savefig(os.path.join(filename, "image.png"), dpi=300, bbox_inches='tight')
+        print(f"Plot salvato come: {os.path.join(filename, 'image.png')}\n" + '='*50)
+
     
     plt.show()
 
@@ -119,14 +122,14 @@ def main():
     # Input
     molecule = get_input()
     num_qubits = 4
-    shots = 100
+    shots = 20000
 
     # Formato: YYYY-MM-DD_HH.MM.SS
     timestamp = time.strftime("%Y-%m-%d_%H.%M.%S")
-    dirname = f'results\\{molecule['name']}\\{timestamp}'
+    dirname = os.path.join("results", molecule["name"], timestamp)
     os.makedirs(dirname, exist_ok=True)
 
-    with open(dirname + '\\file.txt', 'w', encoding='utf-8') as f:
+    with open(os.path.join(dirname, "file.txt"), 'w', encoding='utf-8') as f:
         with redirect_stdout(f):
             # Divide input's components
             dict = molecule['qubit_hamiltonian']
@@ -160,7 +163,7 @@ def main():
             # Plot semplice
             plot_vqe_convergence(vqe_result.fun, elapsed, vqe_energies, min_energy, molecule['name'], dirname, best_rep)
     
-    print(f"File salvato come {dirname + "\\image.png"}\n")
+    print(f"File salvato come {os.path.join(dirname, 'image.png')}\n")
 
 if __name__ == "__main__":
     main()
