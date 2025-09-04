@@ -1,5 +1,0 @@
-L'energia minima che puo' assumere la molecola prova e' -2.462654149065205.
-==================================================
-Ansatz configuration:
-TwoLocal(num_qubits=4, reps=3, rotation_blocks=['ry'], entanglement=linear, entanglement_blocks=['cx'])
-==================================================

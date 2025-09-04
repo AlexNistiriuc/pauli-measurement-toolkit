@@ -1,9 +1,0 @@
-L'energia minima che puo' assumere la molecola LiH e' -8.877080999127667.
-==================================================
-L'ansatz utilizzato e' del tipo:
-	TwoLocal(num_qubits=4,
-			 reps=3,
-			 rotation_blocks=['ry'],
-			 entanglement=linear,
-			 entanglement_blocks='cz')
-==================================================
