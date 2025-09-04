@@ -2,23 +2,28 @@
 
 import numpy as np
 
-# Compute the matrix
 def pstr_to_matrix(pauli_str):
-    matrix = np.array([1])                      # Initial matrix
+    """
+    Convert a Pauli string to its corresponding matrix using tensor products.
+    """
+    matrix = np.array([1], dtype=complex)
     pauli_dict = {
-        'I' : np.array([[1, 0], [0, 1]]),       # I operator
-        'X' : np.array([[0, 1], [1, 0]]),       # X operator
-        'Y' : np.array([[0, -1j], [1j, 0]]),    # Y operator
-        'Z' : np.array([[1, 0], [0, -1]])       # Z operator
-        }
-    for c in pauli_str:
-        matrix = np.kron(matrix, pauli_dict[c]) # Tensor product
+        'I': np.array([[1, 0], [0, 1]], dtype=complex),
+        'X': np.array([[0, 1], [1, 0]], dtype=complex),
+        'Y': np.array([[0, -1j], [1j, 0]], dtype=complex),
+        'Z': np.array([[1, 0], [0, -1]], dtype=complex)
+    }
+    for p in pauli_str:
+        matrix = np.kron(matrix, pauli_dict[p])
     return matrix
 
-# Main function to calculate the expected minimun energy
-def analitical_minimum_energy(dict, n):
-    H = np.zeros((2**n, 2**n), dtype=complex)   # Starting 0-matrix
-    for ps in list(dict.keys()):
-        H += dict[ps] * pstr_to_matrix(ps)      # Add weighted matrix
-    eigenvalues = np.linalg.eigh(H)[0]          # Find eigenvalues
-    return eigenvalues[0]                       # Return first (and minimum) eigenvalue
+
+def analitical_minimum_energy(H_dict, n):
+    """
+    Compute the analytical minimum energy for a qubit Hamiltonian.
+    """
+    H = np.zeros((2**n, 2**n), dtype=complex)
+    for ps in H_dict:
+        H += H_dict[ps] * pstr_to_matrix(ps)
+    eigenvalues = np.linalg.eigh(H)[0]
+    return eigenvalues[0]

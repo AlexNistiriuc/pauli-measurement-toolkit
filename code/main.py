@@ -122,7 +122,7 @@ def main():
     # Input
     molecule = get_input()
     num_qubits = 4
-    shots = 20000
+    shots = 5000
 
     # Formato: YYYY-MM-DD_HH.MM.SS
     timestamp = time.strftime("%Y-%m-%d_%H.%M.%S")
