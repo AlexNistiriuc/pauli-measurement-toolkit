@@ -23,7 +23,7 @@ def get_input():
 
     try:
         with open(filename, 'r', encoding='utf-8') as file:
-            print(f"Molecule {name} loaded successfully!\n")
+            print(f"Molecule {name} loaded successfully!")
             return json.load(file)
     except FileNotFoundError:
         print(f"Error: Data file for {name} not found.")
@@ -89,8 +89,7 @@ def plot_vqe_convergence(result, elapsed, energies, min_energy, molecule_name, o
 def main():
     print('\n' + '='*50)
     molecule_data = get_input()
-    num_qubits = 4
-    shots = 10
+    shots=2000
 
     timestamp = time.strftime("%Y-%m-%d_%H.%M.%S")
     output_dir = os.path.join("..", "results", molecule_data["name"], timestamp)
@@ -107,7 +106,7 @@ def main():
 
     start_time = time.time()
     print(f"....Starting simulations....")
-    vqe_result, vqe_energies, best_circuit, best_iteration = run_vqe(hamiltonian_dict, num_qubits, f, 2000)
+    vqe_result, vqe_energies, best_circuit, best_iteration = run_vqe(hamiltonian_dict, number_of_qubits, f, shots=shots)
     end_time = time.time()
     print(f"....Ending simulations....\n" + '='*50)
     elapsed = end_time - start_time
