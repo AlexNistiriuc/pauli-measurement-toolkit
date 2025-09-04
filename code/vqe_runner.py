@@ -6,7 +6,7 @@ from ansatz_factory import create_ansatz
 from scipy.optimize import minimize
 from simulations import simulation
 
-def run_vqe(H_dict, num_qubits, shots=100):
+def run_vqe(H_dict, num_qubits, file, shots=100):
     """
     ansatz: Circuito parametrico (TwoLocal)
     expectation_func: Funzione che calcola <H> dato il circuito e i parametri
@@ -14,7 +14,7 @@ def run_vqe(H_dict, num_qubits, shots=100):
     """
 
     # Ansatz creation once
-    ansatz = create_ansatz(num_qubits=num_qubits, reps=3)
+    ansatz = create_ansatz(file, num_qubits=num_qubits, reps=3)
     ansatz.add_register(ClassicalRegister(num_qubits, 'c'))
 
     initial_parameters= np.random.normal(0, 0.1, ansatz.num_parameters)
@@ -38,6 +38,9 @@ def run_vqe(H_dict, num_qubits, shots=100):
             best_cirq = parameterized_circuit
             min_energy = energy
             best_rep = n_rep
+            print(f"\tIteration {n_rep} - Energy level: {energy} - NEW BEST")
+        else:
+            print(f"\tIteration {n_rep} - Energy level: {energy}")
 
         n_rep += 1
 
@@ -47,11 +50,13 @@ def run_vqe(H_dict, num_qubits, shots=100):
 
     return result, energies, best_cirq, best_rep
 
+
 if __name__ == "__main__":
     print("🧪 Testing VQE Runner...")
     
     # Test 1: Import dependencies
     try:
+        import sys
         from ansatz_factory import create_ansatz
         from simulations import simulation
         print("✅ Import dipendenze: OK")
@@ -80,7 +85,7 @@ if __name__ == "__main__":
         }
         
         # Test veloce con pochi shots e iterazioni
-        result, energies = run_vqe(simple_H, num_qubits=4, shots=50)
+        result, energies = run_vqe(simple_H, num_qubits=4, file=sys.stdout, shots=50)
         
         print(f"✅ VQE Test completato!")
         print(f"   Energia finale: {result.fun:.6f}")

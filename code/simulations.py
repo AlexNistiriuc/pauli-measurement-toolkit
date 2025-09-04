@@ -13,6 +13,7 @@ def validate_pauli_string(pauli_str, qc):
         if op not in ['I', 'X', 'Y', 'Z']:
             raise ValueError(f"Invalid Pauli operator {op}.")
 
+
 def apply_rotations_pauli_string(qc, pauli_str):
 
     """
@@ -28,10 +29,10 @@ def apply_rotations_pauli_string(qc, pauli_str):
             qc.h(qc.qubits[i])    # Rotate Y to Z
 
 
+def measure_pauli_string(qc, pauli_str):
     """
     Add measurement operations for the Pauli string in Z basis.
     """
-def measure_pauli_string(qc, pauli_str):
     for i, pauli in enumerate(pauli_str):
         qc.measure(qc.qubits[i], qc.clbits[i])
 
@@ -83,7 +84,11 @@ def expectation_value(pauli_str, counts, shots):
         total += count * eigenvalue
     return total / shots
 
+
 def not_optimized(qc, pauli_strings, shots):
+    """
+    Not-optimized expectation value computation using reusable measurements.
+    """
     results = {}
 
     for pauli_str in pauli_strings:
@@ -98,6 +103,8 @@ def not_optimized(qc, pauli_strings, shots):
         results[pauli_str] = expectation_value(pauli_str, counts, shots)
 
     return results
+
+
 def optimized(qc, pauli_strings, shots):
     """
     Optimized expectation value computation using reusable measurements.

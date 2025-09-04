@@ -16,14 +16,14 @@ def get_input():
     Returns:
         dict: Molecule data loaded from JSON.
     """
-    print('\n' + '='*50)
+
     name = input("Which molecule do you want to analyze? ")
     filename = os.path.join("..", "molecules", f"{name}_sto-3g_qubit_hamiltonian.json")
     print(f"Loading molecule data from: {filename}")
 
     try:
         with open(filename, 'r', encoding='utf-8') as file:
-            print(f"Molecule {name} loaded successfully!\n" + '='*50)
+            print(f"Molecule {name} loaded successfully!\n")
             return json.load(file)
     except FileNotFoundError:
         print(f"Error: Data file for {name} not found.")
@@ -87,46 +87,50 @@ def plot_vqe_convergence(result, elapsed, energies, min_energy, molecule_name, o
 
 
 def main():
+    print('\n' + '='*50)
     molecule_data = get_input()
     num_qubits = 4
     shots = 10
 
     timestamp = time.strftime("%Y-%m-%d_%H.%M.%S")
-    output_dir = os.path.join("results", molecule_data["name"], timestamp)
+    output_dir = os.path.join("..", "results", molecule_data["name"], timestamp)
     os.makedirs(output_dir, exist_ok=True)
+    f = open(os.path.join(output_dir, "vqe_log.txt"), 'w', encoding='utf-8')
 
-    with open(os.path.join(output_dir, "vqe_log.txt"), 'w', encoding='utf-8') as f:
-        with redirect_stdout(f):
-            hamiltonian_dict = molecule_data['qubit_hamiltonian']
-            number_of_qubits = len(list(hamiltonian_dict.keys())[0])
+    hamiltonian_dict = molecule_data['qubit_hamiltonian']
+    number_of_qubits = len(list(hamiltonian_dict.keys())[0])
+    print(f"Data successfully prepared!\n" + '='*50)
 
-            # Calculate analytical minimum
-            min_energy = analitical_minimum_energy(hamiltonian_dict, number_of_qubits)
-            print(f"Analytical minimum energy for {molecule_data['name']}: {min_energy}")
+    # Calculate analytical minimum
+    min_energy = analitical_minimum_energy(hamiltonian_dict, number_of_qubits)
+    print(f"Minimum (analitical) energy level: {min_energy}\n" + '='*50)
 
-            start_time = time.time()
-            vqe_result, vqe_energies, best_circuit, best_iteration = run_vqe(hamiltonian_dict, num_qubits, shots)
-            end_time = time.time()
-            elapsed = end_time - start_time
+    start_time = time.time()
+    print(f"....Starting simulations....")
+    vqe_result, vqe_energies, best_circuit, best_iteration = run_vqe(hamiltonian_dict, num_qubits, f, 2000)
+    end_time = time.time()
+    print(f"....Ending simulations....\n" + '='*50)
+    elapsed = end_time - start_time
 
-            energy_diff = vqe_result.fun - min_energy
-            decomposed_circuit = best_circuit.decompose()
+    energy_diff = vqe_result.fun - min_energy
+    decomposed_circuit = best_circuit.decompose()
 
-            # Print results
-            print(f"Best circuit (iteration {best_iteration}):")
-            print(decomposed_circuit.draw(fold=60, output='text'))
-            print('='*50)
-            print(f"VQE Energy: {vqe_result.fun} --> Error: {energy_diff}")
-            print(f"Time elapsed: {elapsed:.4f} s")
-            print('='*50)
-            print(f"Hamiltonian: {hamiltonian_dict}")
-            print(f"Number of iterations: {len(vqe_energies)}")
-            print(f"Energy list: {vqe_energies[:10]} ...")
-            print('='*50)
+    with redirect_stdout(f):
+        # Print results
+        print(f"Hamiltonian: {hamiltonian_dict}")
+        print('='*50)
+        print(f"Analytical minimum energy for {molecule_data['name']}: {min_energy}")
+        print(f"VQE Energy: {vqe_result.fun} --> Error: {energy_diff}")
+        print('='*50)
+        print(f"Time elapsed: {elapsed:.4f} s")
+        print(f"Number of iterations: {len(vqe_energies)}")
+        print(f"Energy list: {vqe_energies[:10]} ...")
+        print('='*50)
+        print(f"Best circuit (iteration {best_iteration}):")
+        print(decomposed_circuit.draw(fold=60, output='text'))
 
-            # Plot convergence
-            plot_vqe_convergence(vqe_result.fun, elapsed, vqe_energies, min_energy, molecule_data['name'], output_dir, best_iteration)
-
+        # Plot convergence
+        plot_vqe_convergence(vqe_result.fun, elapsed, vqe_energies, min_energy, molecule_data['name'], output_dir, best_iteration)
     print(f"Log and plot saved in: {output_dir}\n")
 
 
