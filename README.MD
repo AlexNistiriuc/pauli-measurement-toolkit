@@ -1,19 +1,18 @@
-# Pauli String Measurement Simulator
+# Quantum VQE Simulator for Molecular Ground States
 
-This project uses **Qiskit** to simulate the measurement of Pauli observables (e.g., `XYZI`, `ZZZZ`, `XXYY`) on a given quantum circuit. The code automatically applies the required rotations to align measurements with the Z-basis and computes the expectation values using a quantum simulator.
+Simulates the **ground state energy** of simple molecules (H₂, LiH, …) using the **Variational Quantum Eigensolver (VQE)** with **Qiskit**.
 
-## 🧪 Features
+## 🔹 Features
 
-- Automatically applies pre-measurement rotations for any Pauli basis.
-- Simulates the circuit using `qiskit-aer`.
-- Computes the expectation value ⟨P⟩ of each Pauli string using shot statistics.
-- Supports arbitrary combinations of Pauli operators (`X`, `Y`, `Z`, `I`).
+- Automatic construction of **parametrized ansatz** (`TwoLocal`) for quantum circuits.  
+- Measurement of **Pauli strings** with optimization to reuse counts.  
+- Accurate calculation of **expectation values** for qubit Hamiltonians.  
+- Support for multiple molecules via JSON Hamiltonian files.  
+- Classical optimizers can be tested on parametrized circuits.  
 
----
+## 💡 Key Concepts
 
-## 🛠️ Requirements
-
-Make sure you have Python ≥ 3.8 and install the necessary dependencies:
-
-```bash
-pip install qiskit qiskit-aer
+- **Wave function parametrization** through ansatz.  
+- **Expectation values** for Hamiltonians decomposed into Pauli strings.  
+- **Circuit optimization** to reduce measurement overhead.  
+- VQE **convergence analysis** and comparison with analytical ground state energy.
