@@ -3,15 +3,21 @@
 import qiskit as qk
 from qiskit_aer import AerSimulator
 
-def controls(pauli_str, qc):
+def validate_pauli_string(pauli_str, qc):
+    """
+    Ensure the Pauli string is valid and matches circuit qubits.
+    """
     if len(pauli_str) != len(qc.qubits):
-        raise ValueError(f"Pauli string {pauli_str} length mismatch")
-    for operator in pauli_str:
-        if operator not in ['I', 'X', 'Y', 'Z']:
-            raise ValueError(f"Invalid operator {operator}")
+        raise ValueError(f"Pauli string {pauli_str} length mismatch with circuit.")
+    for op in pauli_str:
+        if op not in ['I', 'X', 'Y', 'Z']:
+            raise ValueError(f"Invalid Pauli operator {op}.")
 
-# Function to apply basis-changing gates so that Pauli measurements can be done in Z-basis
 def apply_rotations_pauli_string(qc, pauli_str):
+
+    """
+    Apply gates to rotate qubits to Z-basis for measurement.
+    """
     for i, pauli in enumerate(pauli_str):
         if pauli == 'I' or pauli == 'Z':
             continue  # No rotation needed
@@ -21,155 +27,106 @@ def apply_rotations_pauli_string(qc, pauli_str):
             qc.sdg(qc.qubits[i])  # S†
             qc.h(qc.qubits[i])    # Rotate Y to Z
 
-# Function to measure qubits in Z-basis
+
+    """
+    Add measurement operations for the Pauli string in Z basis.
+    """
 def measure_pauli_string(qc, pauli_str):
     for i, pauli in enumerate(pauli_str):
         qc.measure(qc.qubits[i], qc.clbits[i])
 
-# Check if base can be reused
+
 def can_reuse_measurements(pauli_str, stored_strings):
+    """
+    Determine if measurement results of a previous string can be reused.
+    """
     for string in stored_strings:
-        is_reusable = True
+        reusable = True
         for a, b in zip(pauli_str, string):
-            # Due stringhe possono condividere misure solo se richiedono 
-            # le stesse rotazioni per ogni qubit
             rotation_a = 'none' if a in ['I', 'Z'] else ('H' if a == 'X' else 'SH')
             rotation_b = 'none' if b in ['I', 'Z'] else ('H' if b == 'X' else 'SH')
-            
             if rotation_a != rotation_b:
-                is_reusable = False
+                reusable = False
                 break
-        if is_reusable:
+        if reusable:
             return string
     return None
 
-# Given a qc and a pauli_str, get the outputs
-def get_output(qc, pauli_str, shots):
-    # Copy the base circuit
-    temp_cirq = qc.copy()
-    apply_rotations_pauli_string(temp_cirq, pauli_str)
-    temp_cirq.barrier()
-    measure_pauli_string(temp_cirq, pauli_str)
 
-    # Print circuit for this Pauli string
-    # print(f"\nMisurando la nuova stringa di Pauli: {pauli_str}")
-    # print(temp_cirq.draw(output='text'))
+def get_counts_for_pauli(qc, pauli_str, shots):
+    """
+    Simulate the circuit and return measurement counts.
+    """
+    temp_qc = qc.copy()
+    apply_rotations_pauli_string(temp_qc, pauli_str)
+    temp_qc.barrier()
+    measure_pauli_string(temp_qc, pauli_str)
+
     simulator = AerSimulator()
-    temp_cirq = qk.transpile(temp_cirq, simulator)
-    job = simulator.run(temp_cirq, shots=shots)
+    transpiled_qc = qk.transpile(temp_qc, simulator)
+    job = simulator.run(transpiled_qc, shots=shots)
     result = job.result()
-    counts = result.get_counts()
+    return result.get_counts()
 
-    return counts
 
-# Calculate the expected value given a pauli_str and its counts
 def expectation_value(pauli_str, counts, shots):
+    """
+    Calculate the expectation value for a Pauli string.
+    """
     total = 0
-    for outcome, cnt in counts.items():   
-        outcome_rev = outcome[::-1]       
+    for outcome, count in counts.items():
+        outcome_rev = outcome[::-1]
         eigenvalue = 1
         for i, bit in enumerate(outcome_rev):
             if pauli_str[i] != 'I' and bit == '1':
                 eigenvalue *= -1
-        total += cnt * eigenvalue         
+        total += count * eigenvalue
     return total / shots
 
-# Not optimized version
 def not_optimized(qc, pauli_strings, shots):
     results = {}
 
     for pauli_str in pauli_strings:
-        # Control the string length and composition
-        controls(pauli_str=pauli_str, qc=qc)
+        validate_pauli_string(pauli_str=pauli_str, qc=qc)
 
         # If all-I string set result = 1
         if all(c == 'I' for c in pauli_str):
             results[pauli_str] = 1
             continue
         
-        # Get the circuit output
-        counts = get_output(qc, pauli_str, shots=shots)
-        # Expectation value
+        counts = get_counts_for_pauli(qc, pauli_str, shots=shots)
         results[pauli_str] = expectation_value(pauli_str, counts, shots)
 
     return results
-
-# Optimized version
 def optimized(qc, pauli_strings, shots):
-    reusable_data = {}
+    """
+    Optimized expectation value computation using reusable measurements.
+    """
+    stored_counts = {}
     results = {}
 
-    for pauli_str in pauli_strings:
-        # Control the string length and composition
-        controls(pauli_str=pauli_str, qc=qc)
-
-        # If all-I string set result = 1
-        if all(c == 'I' for c in pauli_str):
-            results[pauli_str] = 1
+    for ps in pauli_strings:
+        validate_pauli_string(ps, qc)
+        if all(c == 'I' for c in ps):
+            results[ps] = 1
             continue
 
-        base = can_reuse_measurements(pauli_str, reusable_data.keys())
-        if base is not None:
-            # Reuse the circuit outputs
-            counts = reusable_data[base]
-            results[pauli_str] = expectation_value(pauli_str, counts, shots)
-            # print(f"Riutilizzando le misurazioni della stringa di Pauli {base} per {pauli_str}")
+        base = can_reuse_measurements(ps, stored_counts.keys())
+        if base:
+            results[ps] = expectation_value(ps, stored_counts[base], shots)
         else:
-            # Get the circuit output
-            counts = get_output(qc, pauli_str, shots=shots)
-            reusable_data[pauli_str] = counts
-            # Expectation value
-            results[pauli_str] = expectation_value(pauli_str, counts, shots)
+            counts = get_counts_for_pauli(qc, ps, shots)
+            stored_counts[ps] = counts
+            results[ps] = expectation_value(ps, counts, shots)
 
     return results
 
-# Main function to compute expectation values of Pauli strings in the given quantum circuit
-def simulation(qc, dict, shots):
-    averages = optimized(qc, list(dict.keys()), shots)          # optimized version
-    #averages = not_optimized(qc, list(dict.keys()), shots)    # not optimized version
 
-    # Calculate the energy
-    # print("\nExpectation values:")
-    sim_energy = 0
-    for ps in list(dict.keys()):
-        # print(f"<{ps}> = {results[ps]}")
-        sim_energy += averages[ps] * dict[ps]
-
-    return sim_energy
-
-if __name__ == "__main__":
-    from qiskit import QuantumCircuit
-
-    shots = 10000  # numero di misure per ridurre rumore statistico
-
-    # Creazione circuito di test
-    qc = QuantumCircuit(3, 3)
-    qc.h(0)   # qubit 0 in |+>
-    qc.x(1) 
-
-    pauli_strings = ["XII", "IIZ", "IZZ", "XZI", "YYI"]
-    expected_values = {
-        "XII": 1,
-        "IIZ": 1,
-        "IZZ": -1,
-        "XZI": -1,
-        "YYI": 0
-    }
-
-    print("\n=== TEST NOT_OPTIMIZED ===")
-    results_not_opt = not_optimized(qc, pauli_strings, shots)
-    for ps in pauli_strings:
-        print(f"{ps}: calcolato={results_not_opt[ps]:.3f}, teorico={expected_values[ps]}")
-
-    print("\n=== TEST OPTIMIZED ===")
-    results_opt = optimized(qc, pauli_strings, shots)
-    for ps in pauli_strings:
-        print(f"{ps}: calcolato={results_opt[ps]:.3f}, teorico={expected_values[ps]}")
-
-    # Verifica automatica con tolleranza ±10%
-    tol = 0.1
-    for ps in pauli_strings:
-        assert abs(results_not_opt[ps] - expected_values[ps]) < tol, f"Errore not_optimized in {ps}"
-        assert abs(results_opt[ps] - expected_values[ps]) < tol, f"Errore optimized in {ps}"
-
-    print("\nTutti i test superati! ✅ Le misure delle Pauli string sembrano corrette.")
+def simulation(qc, H_dict, shots):
+    """
+    Compute expected energy for given Hamiltonian using the quantum circuit.
+    """
+    averages = optimized(qc, list(H_dict.keys()), shots)
+    #averages = not_optimized(qc, list(H_dict.keys()), shots)
+    energy = sum(H_dict[ps] * averages[ps] for ps in H_dict)
+    return energy
