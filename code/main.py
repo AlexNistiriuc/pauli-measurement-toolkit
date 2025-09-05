@@ -89,7 +89,7 @@ def plot_vqe_convergence(result, elapsed, energies, min_energy, molecule_name, o
 def main():
     print('\n' + '='*50)
     molecule_data = get_input()
-    shots=2000
+    shots=500
 
     timestamp = time.strftime("%Y-%m-%d_%H.%M.%S")
     output_dir = os.path.join("..", "results", molecule_data["name"], timestamp)
