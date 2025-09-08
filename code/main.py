@@ -101,15 +101,20 @@ def main():
     print(f"Data successfully prepared!\n" + '='*50)
 
     # Calculate analytical minimum
-    min_energy = analitical_minimum_energy(hamiltonian_dict, number_of_qubits)
-    print(f"Minimum (analitical) energy level: {min_energy}\n" + '='*50)
-
+    print(f"....Calculating analitical energy....")
     start_time = time.time()
+    min_energy = analitical_minimum_energy(hamiltonian_dict, number_of_qubits)
+    end_time = time.time()
+    print(f"Minimum (analitical) energy level: {min_energy}\n" + '='*50)
+    elapsed_analitical = end_time - start_time
+
+    # Simulating VQE
     print(f"....Starting simulations....")
+    start_time = time.time()
     vqe_result, vqe_energies, best_circuit, best_iteration = run_vqe(hamiltonian_dict, number_of_qubits, f, shots=shots)
     end_time = time.time()
     print(f"....Ending simulations....\n" + '='*50)
-    elapsed = end_time - start_time
+    elapsed_vqe = end_time - start_time
 
     energy_diff = vqe_result.fun - min_energy
     decomposed_circuit = best_circuit.decompose()
@@ -119,9 +124,11 @@ def main():
         print(f"Hamiltonian: {hamiltonian_dict}")
         print('='*50)
         print(f"Analytical minimum energy for {molecule_data['name']}: {min_energy}")
-        print(f"VQE Energy: {vqe_result.fun} --> Error: {energy_diff}")
+        print(f"Elapsed time: {elapsed_analitical:.4f} s")
         print('='*50)
-        print(f"Time elapsed: {elapsed:.4f} s")
+        print(f"VQE Energy: {vqe_result.fun} --> Error: {energy_diff}")
+        print(f"Shots: {shots}")
+        print(f"Time elapsed: {elapsed_vqe:.4f} s")
         print(f"Number of iterations: {len(vqe_energies)}")
         print(f"Energy list: {vqe_energies[:10]} ...")
         print('='*50)
@@ -129,7 +136,7 @@ def main():
         print(decomposed_circuit.draw(fold=60, output='text'))
 
         # Plot convergence
-        plot_vqe_convergence(vqe_result.fun, elapsed, vqe_energies, min_energy, molecule_data['name'], output_dir, best_iteration)
+        plot_vqe_convergence(vqe_result.fun, elapsed_vqe, vqe_energies, min_energy, molecule_data['name'], output_dir, best_iteration)
     print(f"Log and plot saved in: {output_dir}\n")
 
 
