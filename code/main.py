@@ -69,10 +69,9 @@ def plot_vqe_convergence(result, elapsed, energies, min_energy, molecule_name, o
     error_percent = (error / abs(min_energy)) * 100
     stats_text = f'''Statistics:
 • Iterations: {len(energies)}
-• Best: {result:.6f}
-• Absolute Error: {error:.6f}
+• Best: {result:.6f} Hartree = {(result * 27.211386245988):.6f} eV
+• Absolute Error: {error:.6f} Hartree = {(error * 27.211386245988):.6f} eV
 • Error %: {error_percent:.3f}%
-• Improvement: {energies[0] - energies[-1]:.6f}
 • Time elapsed: {elapsed:.6f} s'''
     plt.text(0.02, 0.98, stats_text, transform=plt.gca().transAxes,
              verticalalignment='top', bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.8))
@@ -89,7 +88,7 @@ def plot_vqe_convergence(result, elapsed, energies, min_energy, molecule_name, o
 def main():
     print('\n' + '='*50)
     molecule_data = get_input()
-    shots=500
+    shots=1000
 
     timestamp = time.strftime("%Y-%m-%d_%H.%M.%S")
     output_dir = os.path.join("..", "results", molecule_data["name"], timestamp)
@@ -98,6 +97,8 @@ def main():
 
     hamiltonian_dict = molecule_data['qubit_hamiltonian']
     number_of_qubits = len(list(hamiltonian_dict.keys())[0])
+    num_spatial_orbitals = molecule_data['n_orbs']
+    num_elec = molecule_data['n_elec']
     print(f"Data successfully prepared!\n" + '='*50)
 
     # Calculate analytical minimum
@@ -109,24 +110,29 @@ def main():
     elapsed_analitical = end_time - start_time
 
     # Simulating VQE
-    print(f"....Starting simulations....")
     start_time = time.time()
-    vqe_result, vqe_energies, best_circuit, best_iteration = run_vqe(hamiltonian_dict, number_of_qubits, f, shots=shots)
+    vqe_result, vqe_energies, best_circuit, best_iteration = run_vqe(hamiltonian_dict, number_of_qubits, f, num_spatial_orbitals, num_elec, shots=shots)
     end_time = time.time()
     print(f"....Ending simulations....\n" + '='*50)
     elapsed_vqe = end_time - start_time
 
+    Hartree_eV = 27.211386245988
+    min_energy_eV = min_energy * Hartree_eV
+    vqe_result_eV = vqe_result.fun * Hartree_eV
     energy_diff = vqe_result.fun - min_energy
+    energy_diff_eV = energy_diff * Hartree_eV
+    percentage = (-energy_diff/min_energy)*100
     decomposed_circuit = best_circuit.decompose()
 
     with redirect_stdout(f):
         # Print results
         print(f"Hamiltonian: {hamiltonian_dict}")
         print('='*50)
-        print(f"Analytical minimum energy for {molecule_data['name']}: {min_energy}")
+        print(f"Analytical minimum energy for {molecule_data['name']}: {min_energy} Hartree = {min_energy_eV} eV")
         print(f"Elapsed time: {elapsed_analitical:.4f} s")
         print('='*50)
-        print(f"VQE Energy: {vqe_result.fun} --> Error: {energy_diff}")
+        print(f"VQE Energy: {vqe_result.fun} Hartree = {vqe_result_eV} eV")
+        print(f"Error: {energy_diff} Hartree = {energy_diff_eV} eV --> {percentage}%")
         print(f"Shots: {shots}")
         print(f"Time elapsed: {elapsed_vqe:.4f} s")
         print(f"Number of iterations: {len(vqe_energies)}")

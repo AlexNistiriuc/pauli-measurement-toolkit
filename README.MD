@@ -4,7 +4,7 @@ Simulates the **ground state energy** of simple molecules (H₂, LiH, …) using
 
 ## 🔹 Features
 
-- Automatic construction of **parametrized ansatz** (`TwoLocal`) for quantum circuits.  
+- Automatic construction of **parametrized ansatz** (`TwoLocal` or `UCCSD`) for quantum circuits.  
 - Measurement of **Pauli strings** with optimization to reuse counts.  
 - Accurate calculation of **expectation values** for qubit Hamiltonians.  
 - Support for multiple molecules via JSON Hamiltonian files.  
